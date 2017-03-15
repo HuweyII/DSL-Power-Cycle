@@ -8,16 +8,17 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(4,GPIO.OUT)
 GPIO.output(4,GPIO.HIGH)
 
-hosttoping = "8.8.8.7"
-sucdelay = 10
-failretry = 3
-faildelay = 2
-poweroffdelay = 10
-bootdelay = 12
+hosttoping = "8.8.8.8"
+sucdelay = 120 # How many seconds to wait after a successful ping
+failretry = 3 # How many cycles of failed pings before power cycle
+faildelay = 30 # How long to wait after a failed ping before trying again
+poweroffdelay = 10 # How long to stay powered off
+bootdelay = 180 # How many seconds to wait after power cycle 
+circlekdelay = 600 # How long to wait after a power cycle failed before starting over
 circlek = False
-circlekdelay = 60
 
 def ping(host):
+   print "Pinging " + hosttoping + " on eth0"
    response = os.system("ping -c 1 -I eth0 -W 2 " + host + "  >/dev/null 2>&1" )
    if response == 0:
       return True
@@ -40,6 +41,10 @@ def kickit():
       time.sleep(sucdelay)
    else:
       circlek = True
+
+def cleanup():
+   GPIO.output(4,GPIO.HIGH)
+   GPIO.cleanup()
 
 while True:
    if circlek == True:
@@ -67,5 +72,5 @@ while True:
             else:
                retrycount += 1
                print "It still wasn't pingable after " + str(retrycount) + " tries." 
-               print "We will keep trying until we have tried more than " + str(failretry) + " times."
+               print "We will keep trying until we have tried " + str(failretry) + " times."
 
