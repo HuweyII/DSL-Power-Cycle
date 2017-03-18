@@ -32,15 +32,17 @@ VERBOSE = True
 
 def led(color):
    if color == 'off':
+      #vprintandlog("Switching all LED off")
       for led_off in led_gpio: #Switch all LED's off
          GPIO.output(led_gpio[led_off],GPIO.LOW)
    else:
       for led_off in led_gpio: #Switch all LED's off
          GPIO.output(led_gpio[led_off],GPIO.LOW)
+      #vprintandlog(color + " LED switched on")
       GPIO.output(led_gpio[color],GPIO.HIGH)
 
 def ping(host):
-   print "Pinging " + hosttoping + " on eth0"
+   vprint("Pinging " + hosttoping + " on eth0")
    response = os.system("ping -c 1 -I eth0 -W 2 " + host + "  >/dev/null 2>&1" )
    if response == 0:
       return True
@@ -55,26 +57,32 @@ def vprint(*args):
     # Called from other locations like this
     #  vprint ("Look how awesome my verbosity is")
     # This function is enabled by the -v switch on the CLI
-    if VERBOSE:
-        for arg in args:
-           print arg
-           logme(arg)
+   if VERBOSE:
+       for arg in args:
+          print arg
+
+def vprintandlog(*args):
+   for arg in args:
+      logme(arg)
+   if VERBOSE:
+      for arg in args:
+         print arg
+
 
 def kickit():
    global circlek
    led('red')
-   print "Switching power off."
+   vprintandlog("Switching power off.")
    GPIO.output(4,GPIO.LOW)
-   print "Power is off sleeping for " + str(poweroffdelay) + " seconds before switching it back on."
+   vprintandlog("Power is off sleeping for " + str(poweroffdelay) + " seconds before switching back on.")
    time.sleep(poweroffdelay)
    GPIO.output(4,GPIO.HIGH)
-   print "Power is on."
-   print "Sleeping for " + str(bootdelay) + " seconds for things to reboot."
+   vprintandlog("Power is on. Sleeping for " + str(bootdelay) + " seconds for things to reboot.")
    time.sleep(bootdelay)
-   print "Pinging after reboot."
+   vprintandlog("Pinging after reboot.")
    if ping(hosttoping):
       led('green')
-      print "OK it's working again, returning to our normaly scheduled programming."
+      vprintandlog(hosttoping + " is now pingable, returning to our normaly scheduled programming.")
       time.sleep(sucdelay)
    else:
       circlek = True
@@ -83,38 +91,37 @@ def cleanup():
    GPIO.output(4,GPIO.HIGH)
    GPIO.cleanup()
 
-logme ("Test log entry from inside the system while pinging " + hosttoping + " this host.") 
-led('off')
+#logme ("Test log entry from inside the system while pinging " + hosttoping + " this host.") 
+led('off') # Make sure all the LED's are off
 while True:
    if circlek == True:
-      print "Strange things are afoot at the Circle-K, so we're going to sleep for " + str(circlekdelay) + " and then try again."
+      vprintandlog("Strange things are afoot at the Circle-K, so we're going to sleep for " + str(circlekdelay) + " and then try again.")
       time.sleep(circlekdelay)
-      print "OK lets try this again."
+      vprintandlog("OK lets try this again.")
       circlek = False
    if ping(hosttoping):
       led('green')
-      print "Yep it's pingable. So we're going to sleep for " + str(sucdelay) + " seconds before checking again."
+      vprint(hosttoping + " is pingable. Sleeping for " + str(sucdelay) + " seconds before checking again.")
       time.sleep(sucdelay);
       led('off')
    else:
       led('yellow')
-      print "Nope it didn't answer. Crap!" 
+      vprintandlog("No answer from " + hosttoping + "  Crap!")
       retrycount = 0
       while retrycount <= failretry:
-         print "Sleeping for " + str(faildelay) + " seconds before we try pinging again."
+         vprintandlog("Sleeping for " + str(faildelay) + " seconds before pinging again.")
          time.sleep(faildelay)
          led('off')
          if ping(hosttoping):
-            print "It's pingable now"
+            vprintandlog("It's pingable now")
             break
          else:
             if retrycount >= failretry:
-               print "It hasn't been pingable for too long so we're going to kick it." 
+               vprintandlog("It hasn't been pingable for too long so we're going to kick it.") 
                kickit()
                break
             else:
                retrycount += 1
                led('yellow')
-               print "It still wasn't pingable after " + str(retrycount) + " tries." 
-               print "We will keep trying until we have tried " + str(failretry) + " times."
+               vprintandlog(hosttoping + " still wasn't pingable after " + str(retrycount) + " tries.  We will keep trying until we have tried " + str(failretry) + " times.")
 
